@@ -66,6 +66,18 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
     Intersection intersection;
     var t_closest = double.infinity;
 
+	for (Surface surface in scene.surfaces) {
+		if (surface.type == 'sphere') {
+			print("surface is sphere: ${surface}");
+			surface.frame.o
+			var a = 1; 
+			var b = (2*ray.d).dot(scene.camera.eye-surface.frame.o);
+			var c = (scene.camera.eye-surface.frame.o).lengthSquared - surface.size*surface.size;
+			var determinant = b*b - 4*a*c;
+			// determine the distance 't', and construct meaningful Intersection object
+		}
+	}
+
     // for each surface
     //     if surface is a sphere
     //         compute ray's t value(s) at intersection(s), continue if no intersection
@@ -106,6 +118,22 @@ RGBColor irradiance(Scene scene, Ray ray) {
 // Computes image of scene using basic Whitted raytracer.
 Image raytraceScene(Scene scene) {
     var image = Image(scene.resolution.width, scene.resolution.height);
+	var camera = scene.camera;
+	var cameraFrame = camera.frame;
+
+	for (var row=0; row<image.height; row++) {
+		for (var col=0; col<image.width; col++) {
+			var horizontalOffset = (col/image.width-0.5) * (camera.sensorSize.width);
+			var verticalOffset = (row/image.height-0.5) * (camera.sensorSize.height);
+			Point pixelPoint = cameraFrame.l2wPoint(
+					Point(horizontalOffset, verticalOffset, -camera.sensorDistance));
+			Ray ray = Ray.fromPoints(camera.eye, pixelPoint);
+			// do stuff here with pixel
+			RGBColor pixelColor = irradiance(scene, ray);
+			image.setPixelSafe(col, row, pixelColor);
+		}
+	}
+
 
     // if no anti-aliasing
     //     foreach image row (scene.resolution.height)
@@ -124,6 +152,8 @@ Image raytraceScene(Scene scene) {
     //                     accumulate color raytraced with ray
     //             set pixel to average of accum color (scale by number of samples)
     // return rendered image
+
+
 
     return image;
 }
