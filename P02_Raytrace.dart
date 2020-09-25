@@ -68,13 +68,30 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
 
 	for (Surface surface in scene.surfaces) {
 		if (surface.type == 'sphere') {
-			print("surface is sphere: ${surface}");
-			surface.frame.o
 			var a = 1; 
-			var b = (2*ray.d).dot(scene.camera.eye-surface.frame.o);
+			var b = (ray.d*2).dot(scene.camera.eye-surface.frame.o);
 			var c = (scene.camera.eye-surface.frame.o).lengthSquared - surface.size*surface.size;
 			var determinant = b*b - 4*a*c;
-			// determine the distance 't', and construct meaningful Intersection object
+			double t = null;
+			if (determinant < 0) {
+				// no solution
+				t = null;
+			// } else if (determinant == 0) {
+			// 	// one solution
+			// 	var t = (-b/(2*a));
+			// 	// TODO: check range Ray.valid(t)
+			} else {
+				var ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
+						.where((t)=>ray.valid(t))
+						.toList();
+				t = ts.isEmpty ? null : ts.reduce(min);
+			}
+			// if distance 't' is closer, construct meaningful Intersection object
+			if (t != null && t < t_closest) {
+				t_closest = t;
+				Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
+				intersection = Intersection(frame, surface.material, t);
+			}
 		}
 	}
 
@@ -112,7 +129,14 @@ RGBColor irradiance(Scene scene, Ray ray) {
     // return accumulated color
 
     // The following line is only a placeholder
-    return RGBColor.black();
+	Intersection intersection = intersectRayScene(scene, ray);
+	if (intersection != null) {
+		// TODO: compute lighting
+		return RGBColor.white();
+	}
+	else {
+		return RGBColor.black();
+	}
 }
 
 // Computes image of scene using basic Whitted raytracer.
@@ -127,7 +151,7 @@ Image raytraceScene(Scene scene) {
 			var verticalOffset = (row/image.height-0.5) * (camera.sensorSize.height);
 			Point pixelPoint = cameraFrame.l2wPoint(
 					Point(horizontalOffset, verticalOffset, -camera.sensorDistance));
-			Ray ray = Ray.fromPoints(camera.eye, pixelPoint);
+			Ray ray = Ray(camera.eye, Direction.fromPoints(camera.eye, pixelPoint));
 			// do stuff here with pixel
 			RGBColor pixelColor = irradiance(scene, ray);
 			image.setPixelSafe(col, row, pixelColor);
