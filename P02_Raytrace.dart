@@ -46,15 +46,15 @@ Size2i overrideResolution = null;
 // NOTE: **BEFORE** you submit your solution, uncomment all lines, so
 //       your code will render all the scenes!
 List<String> scenePaths = [
-    // 'scenes/P02_00_sphere.json',
-    // 'scenes/P02_01_sphere_ka.json',
-    // 'scenes/P02_02_sphere_room.json',
-    // 'scenes/P02_03_quad.json',
-    // 'scenes/P02_04_quad_room.json',
+    'scenes/P02_00_sphere.json',
+    'scenes/P02_01_sphere_ka.json',
+    'scenes/P02_02_sphere_room.json',
+    'scenes/P02_03_quad.json',
+    'scenes/P02_04_quad_room.json',
     'scenes/P02_05_ball_on_plane.json',
     'scenes/P02_06_balls_on_plane.json',
-    // 'scenes/P02_07_reflection.json',
-    // 'scenes/P02_08_aa.json',
+    'scenes/P02_07_reflection.json',
+    'scenes/P02_08_aa.json',
 ];
 
 
@@ -72,27 +72,45 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
             var b = (ray.d*2).dot(scene.camera.eye-surface.frame.o);
             var c = (scene.camera.eye-surface.frame.o).lengthSquared - surface.size*surface.size;
             var determinant = b*b - 4*a*c;
-            double t = null;
             if (determinant < 0) {
                 // no solution
-                t = null;
-            // } else if (determinant == 0) {
-            //     // one solution
-            //     var t = (-b/(2*a));
-            //     // TODO: check range Ray.valid(t)
+				continue;
             } else {
-                var ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
-                        .where((t)=>ray.valid(t))
-                        .toList();
-                t = ts.isEmpty ? null : ts.reduce(min);
+				List<double> ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
+						.where((t)=>ray.valid(t))
+						.toList();
+				if (ts.isEmpty) {
+					continue;
+				}
+				var t = ts.reduce(min);
+				// if distance 't' is closer, construct meaningful Intersection object
+				if (t < t_closest) {
+					t_closest = t;
+					Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
+					intersection = Intersection(frame, surface.material, t);
+				}
             }
-            // if distance 't' is closer, construct meaningful Intersection object
-            if (t != null && t < t_closest) {
-                t_closest = t;
-                Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
+        } else if (surface.type == 'quad') {
+			double determinant = ray.d.dot(surface.frame.z);
+			if (determinant == 0) {
+				// if parallel
+				continue;
+			}
+			var t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
+			var point = ray.eval(t);
+			Vector offset = point - surface.frame.o;
+			if (offset.x.abs() > surface.size || offset.y.abs() > surface.size) {
+				// if off the quad
+				continue;
+			}
+			if (ray.valid(t) && t < t_closest) {
+				t_closest = t;
+				Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
+                Frame frame = Frame(o:point, z:surface.frame.z);
                 intersection = Intersection(frame, surface.material, t);
-            }
-        }
+			}
+			
+		}
     }
 
     // for each surface
@@ -135,28 +153,24 @@ RGBColor irradiance(Scene scene, Ray ray) {
         for (Light light in scene.lights) {
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
             Direction viewingDirection = Direction.fromPoints(scene.camera.eye, intersection.frame.o);
-            double normalFraction = max(0, intersection.frame.z.dot(lightDirection));
+            double normalFraction = -intersection.frame.z.dot(lightDirection);
             // TODO: add attenuation to light property
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
             RGBColor perceivedLight = RGBColor(0,0,0);
             // calculate diffuse light
             perceivedLight += response * intersection.material.kd * normalFraction;
-            // FIXME: specular location on sphere does not look right
             // calculate specular light
-            // Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
-            // var specular = response
-            //         * intersection.material.ks
-            //         * pow(max(0, intersection.n.dot(bisector)),
-            //                 intersection.material.n);
-            // perceivedLight += specular;
+            Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
+            var specular = response
+                    * intersection.material.ks
+                    * pow(max(0, intersection.n.dot(bisector)),
+                            intersection.material.n);
+            perceivedLight += specular;
 
             // TODO: calculate reflection & refraction
-
-
             color += perceivedLight;
         }
-
         return color;
     }
     else {
@@ -168,13 +182,12 @@ RGBColor irradiance(Scene scene, Ray ray) {
 Image raytraceScene(Scene scene) {
     var image = Image(scene.resolution.width, scene.resolution.height);
     var camera = scene.camera;
-    var cameraFrame = camera.frame;
 
     for (var row=0; row<image.height; row++) {
         for (var col=0; col<image.width; col++) {
             var horizontalOffset = (col/image.width-0.5) * (camera.sensorSize.width);
-            var verticalOffset = (row/image.height-0.5) * (camera.sensorSize.height);
-            Point pixelPoint = cameraFrame.l2wPoint(
+            var verticalOffset = -(row/image.height-0.5) * (camera.sensorSize.height);
+            Point pixelPoint = camera.frame.l2wPoint(
                     Point(horizontalOffset, verticalOffset, -camera.sensorDistance));
             Ray ray = Ray(camera.eye, Direction.fromPoints(camera.eye, pixelPoint));
             // do stuff here with pixel
