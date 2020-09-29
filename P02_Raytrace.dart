@@ -149,27 +149,25 @@ RGBColor irradiance(Scene scene, Ray ray) {
     // The following line is only a placeholder
     Intersection intersection = intersectRayScene(scene, ray);
     if (intersection != null) {
-        RGBColor color = scene.ambientIntensity;
+        RGBColor color = scene.ambientIntensity * intersection.material.kd;
         for (Light light in scene.lights) {
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
             Direction viewingDirection = Direction.fromPoints(scene.camera.eye, intersection.frame.o);
-            double normalFraction = -intersection.frame.z.dot(lightDirection);
+            double normalFraction = intersection.frame.z.dot(lightDirection).abs();
             // TODO: add attenuation to light property
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
-            RGBColor perceivedLight = RGBColor(0,0,0);
             // calculate diffuse light
-            perceivedLight += response * intersection.material.kd * normalFraction;
-            // calculate specular light
-            Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
-            var specular = response
-                    * intersection.material.ks
-                    * pow(max(0, intersection.n.dot(bisector)),
-                            intersection.material.n);
-            perceivedLight += specular;
+            color += response * intersection.material.kd * normalFraction;
+            // // calculate specular light
+            // Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
+            // var specular = response
+            //         * intersection.material.ks
+            //         * pow(max(0, intersection.n.dot(bisector)),
+            //                 intersection.material.n);
+            // perceivedLight += specular;
 
-            // TODO: calculate reflection & refraction
-            color += perceivedLight;
+            // // TODO: calculate reflection & refraction
         }
         return color;
     }
