@@ -185,8 +185,8 @@ Image raytraceScene(Scene scene) {
 
     for (var row=0; row<image.height; row++) {
         for (var col=0; col<image.width; col++) {
-            var horizontalOffset = (col/image.width-0.5) * (camera.sensorSize.width);
-            var verticalOffset = -(row/image.height-0.5) * (camera.sensorSize.height);
+            var horizontalOffset = ((col+0.5)/image.width-0.5) * (camera.sensorSize.width);
+            var verticalOffset = -((row+0.5)/image.height-0.5) * (camera.sensorSize.height);
             Point pixelPoint = camera.frame.l2wPoint(
                     Point(horizontalOffset, verticalOffset, -camera.sensorDistance));
             Ray ray = Ray(camera.eye, Direction.fromPoints(camera.eye, pixelPoint));
