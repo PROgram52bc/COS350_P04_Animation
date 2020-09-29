@@ -153,7 +153,9 @@ RGBColor irradiance(Scene scene, Ray ray) {
         for (Light light in scene.lights) {
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
             Direction viewingDirection = Direction.fromPoints(scene.camera.eye, intersection.frame.o);
-            double normalFraction = intersection.frame.z.dot(lightDirection).abs();
+            // the cos of the angle between normal and light direction
+            // 0 if normal is pointing away from light, in which case no light will be reflected
+            double normalFraction = max(0, intersection.frame.z.dot(-lightDirection));
             // TODO: add attenuation to light property
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
@@ -165,7 +167,7 @@ RGBColor irradiance(Scene scene, Ray ray) {
             //         * intersection.material.ks
             //         * pow(max(0, intersection.n.dot(bisector)),
             //                 intersection.material.n);
-            // perceivedLight += specular;
+            // color += specular;
 
             // // TODO: calculate reflection & refraction
         }
