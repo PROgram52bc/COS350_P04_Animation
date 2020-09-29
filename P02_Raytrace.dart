@@ -160,16 +160,18 @@ RGBColor irradiance(Scene scene, Ray ray) {
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
             // calculate diffuse light
-            color += response * intersection.material.kd * normalFraction;
-            // // calculate specular light
-            // Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
-            // var specular = response
-            //         * intersection.material.ks
-            //         * pow(max(0, intersection.n.dot(bisector)),
-            //                 intersection.material.n);
-            // color += specular;
+            var diffuse = response * intersection.material.kd * normalFraction;
+            color += diffuse;
+            // calculate specular light
+            Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
+            var specular = response
+                    * intersection.material.ks
+                    * pow(max(0, intersection.n.dot(bisector)),
+                            intersection.material.n)
+                    * normalFraction;
+            color += specular;
 
-            // // TODO: calculate reflection & refraction
+            // TODO: calculate reflection & refraction
         }
         return color;
     }
