@@ -41,6 +41,8 @@ bool writeImageInBinary = true;
 Size2i overrideResolution = null;
 // Size2i overrideResolution = Size2i(32, 32);     // uncomment to render 64x64 image
 
+const int irradianceMaxDepth = 10;
+
 // Comment out lines below to prevent re-rendering every scene.
 // If you create a new scene file, add it to the list below.
 // NOTE: **BEFORE** you submit your solution, uncomment all lines, so
@@ -68,26 +70,23 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
 
     for (Surface surface in scene.surfaces) {
         if (surface.type == 'sphere') {
-            var a = 1;
-            var b = (ray.d*2).dot(scene.camera.eye-surface.frame.o);
-            var c = (scene.camera.eye-surface.frame.o).lengthSquared - surface.size*surface.size;
+            double a = 1;
+            double b = (ray.d*2).dot(ray.e-surface.frame.o);
+            double c = (ray.e-surface.frame.o).lengthSquared - pow(surface.size, 2);
             var determinant = b*b - 4*a*c;
+            // no solution
             if (determinant < 0) {
-                // no solution
                 continue;
             } else {
-                List<double> ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
+                // find closest valid t, if neither are valid, t = infinity
+                double t = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
                         .where((t)=>ray.valid(t))
-                        .toList();
-                if (ts.isEmpty) {
-                    continue;
-                }
-                var t = ts.reduce(min);
+                        .fold(double.infinity, min);
                 // if distance 't' is closer, construct meaningful Intersection object
                 if (t < t_closest) {
                     t_closest = t;
                     Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
-                    intersection = Intersection(frame, surface.material, t);
+                    intersection = Intersection(frame, surface, t);
                 }
             }
         } else if (surface.type == 'quad') {
@@ -96,43 +95,29 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
                 // if parallel
                 continue;
             }
-            var t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
-            var point = ray.eval(t);
+            double t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
+            Point point = ray.eval(t);
+            // check whether point is in quad
             Vector offset = point - surface.frame.o;
             if (offset.x.abs() > surface.size || offset.y.abs() > surface.size) {
-                // if off the quad
                 continue;
             }
             if (ray.valid(t) && t < t_closest) {
                 t_closest = t;
                 Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
                 Frame frame = Frame(o:point, z:surface.frame.z);
-                intersection = Intersection(frame, surface.material, t);
+                intersection = Intersection(frame, surface, t);
             }
-
         }
     }
-
-    // for each surface
-    //     if surface is a sphere
-    //         compute ray's t value(s) at intersection(s), continue if no intersection
-    //         NOTE: a ray can intersect a sphere in 0, 1, or 2 different points!
-    //         continue if computed t is not a valid ray value (between min and max)
-    //         continue if computed t is not closest intersection
-    //         record intersection information
-    //     if surface is a quad
-    //         compute ray's t value at intersection of ray and plane, continue if no intersection
-    //         continue if computed t is not a valid ray value (between min and max)
-    //         continue if computed t is not closest intersection
-    //         compute intersection point, continue if point is outside quad
-    //         record intersection information
-    // return closest intersection
-
     return intersection;
 }
 
 // Computes irradiance (as RGBColor) from scene along ray
-RGBColor irradiance(Scene scene, Ray ray) {
+RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
+    if (depth > irradianceMaxDepth) {
+        return RGBColor.black();
+    }
     // get scene intersection
     // if not hit, return scene's background intensity
     // accumulate color starting with ambient
@@ -146,17 +131,14 @@ RGBColor irradiance(Scene scene, Ray ray) {
     //     accumulate reflected light (recursive call) scaled by material reflection
     // return accumulated color
 
-    // The following line is only a placeholder
     Intersection intersection = intersectRayScene(scene, ray);
     if (intersection != null) {
         RGBColor color = scene.ambientIntensity * intersection.material.kd;
         for (Light light in scene.lights) {
-            // cast light ray to detect shadow FIXME: shadow ray not working
             Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
-            print("shadowRay: ${shadowRay}");
             Intersection obstruction = intersectRayScene(scene, shadowRay);
             if (obstruction != null) {
-                print("obstruction.distance: ${obstruction.distance}");
+                // TODO: handle refraction or transparency, so that only part of the light is obstructed?
                 continue;
             }
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
@@ -178,9 +160,11 @@ RGBColor irradiance(Scene scene, Ray ray) {
                             intersection.material.n)
                     * normalFraction;
             color += specular;
-
-            // TODO: calculate reflection & refraction
         }
+        // // calculate reflection
+        // Ray reflectionRay = ...;
+        // color += material.kr * irradiance(scene, reflectionRay, depth+1);
+        //     // TODO: calculate reflection & refraction
         return color;
     }
     else {
