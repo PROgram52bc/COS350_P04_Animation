@@ -4,14 +4,15 @@ import 'maths.dart';
 
 class Intersection {
     Frame frame;
-    Material material;
     double distance;
+    Surface surface;
 
-    Intersection(this.frame, this.material, this.distance);
+    Intersection(this.frame, this.surface, this.distance);
 
     // convenience getters
     Point  get o => frame.o;
     Normal get n => Normal.fromDirection(frame.z);
+    Material get material => surface.material;
 }
 
 
@@ -46,6 +47,8 @@ class Surface {
         frame    = loader.loadObject('frame',    (d)=>Frame.fromJson(d))    ?? frame;
         material = loader.loadObject('material', (d)=>Material.fromJson(d)) ?? material;
     }
+
+    String toString() => 'Surface(type:$type, size:$size, frame:$frame)';
 }
 
 

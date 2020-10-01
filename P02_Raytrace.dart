@@ -41,7 +41,7 @@ bool writeImageInBinary = true;
 Size2i overrideResolution = null;
 // Size2i overrideResolution = Size2i(32, 32);     // uncomment to render 64x64 image
 
-const int irradianceMaxDepth = 10;
+const int irradianceMaxDepth = 3;
 
 // Comment out lines below to prevent re-rendering every scene.
 // If you create a new scene file, add it to the list below.
@@ -99,7 +99,8 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
             Point point = ray.eval(t);
             // check whether point is in quad
             Vector offset = point - surface.frame.o;
-            if (offset.x.abs() > surface.size || offset.y.abs() > surface.size) {
+            if (offset.dot(surface.frame.x).abs() > surface.size 
+                    || offset.dot(surface.frame.y).abs() > surface.size) {
                 continue;
             }
             if (ray.valid(t) && t < t_closest) {
@@ -118,18 +119,6 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
     if (depth > irradianceMaxDepth) {
         return RGBColor.black();
     }
-    // get scene intersection
-    // if not hit, return scene's background intensity
-    // accumulate color starting with ambient
-    // foreach light
-    //     compute light response    (L)
-    //     compute light direction   (l)
-    //     compute light visibility  (V)
-    //     compute material response (BRFD*cos) and accumulate
-    // if material has reflections (lightness of kr > 0)
-    //     create reflection ray
-    //     accumulate reflected light (recursive call) scaled by material reflection
-    // return accumulated color
 
     Intersection intersection = intersectRayScene(scene, ray);
     if (intersection != null) {
@@ -142,10 +131,10 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
                 continue;
             }
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
-            Direction viewingDirection = Direction.fromPoints(scene.camera.eye, intersection.frame.o);
+            Direction viewingDirection = Direction.fromPoints(ray.e, intersection.frame.o);
             // the cos of the angle between normal and light direction
-            // 0 if normal is pointing away from light, in which case no light will be reflected
-            double normalFraction = max(0, intersection.frame.z.dot(-lightDirection));
+            // negative if normal and light forms an acute angle
+            double normalFraction = intersection.n.dot(-lightDirection);
             // TODO: add attenuation to light property
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
@@ -161,10 +150,12 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
                     * normalFraction;
             color += specular;
         }
-        // // calculate reflection
-        // Ray reflectionRay = ...;
-        // color += material.kr * irradiance(scene, reflectionRay, depth+1);
-        //     // TODO: calculate reflection & refraction
+        // calculate reflection
+        Ray reflectionRay = Ray(intersection.frame.o,
+                Direction.fromVector(-intersection.n * 2 * ray.d.dot(intersection.n) + ray.d));
+        RGBColor reflection = intersection.material.kr * irradiance(scene, reflectionRay, depth+1);
+        color += reflection;
+        // TODO: calculate refraction
         return color;
     }
     else {
