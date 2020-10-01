@@ -74,43 +74,43 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
             var determinant = b*b - 4*a*c;
             if (determinant < 0) {
                 // no solution
-				continue;
+                continue;
             } else {
-				List<double> ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
-						.where((t)=>ray.valid(t))
-						.toList();
-				if (ts.isEmpty) {
-					continue;
-				}
-				var t = ts.reduce(min);
-				// if distance 't' is closer, construct meaningful Intersection object
-				if (t < t_closest) {
-					t_closest = t;
-					Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
-					intersection = Intersection(frame, surface.material, t);
-				}
+                List<double> ts = [(-b+sqrt(determinant))/(2*a), (-b-sqrt(determinant))/(2*a)]
+                        .where((t)=>ray.valid(t))
+                        .toList();
+                if (ts.isEmpty) {
+                    continue;
+                }
+                var t = ts.reduce(min);
+                // if distance 't' is closer, construct meaningful Intersection object
+                if (t < t_closest) {
+                    t_closest = t;
+                    Frame frame = Frame(o:ray.eval(t), n:Normal.fromPoints(surface.frame.o, ray.eval(t)));
+                    intersection = Intersection(frame, surface.material, t);
+                }
             }
         } else if (surface.type == 'quad') {
-			double determinant = ray.d.dot(surface.frame.z);
-			if (determinant == 0) {
-				// if parallel
-				continue;
-			}
-			var t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
-			var point = ray.eval(t);
-			Vector offset = point - surface.frame.o;
-			if (offset.x.abs() > surface.size || offset.y.abs() > surface.size) {
-				// if off the quad
-				continue;
-			}
-			if (ray.valid(t) && t < t_closest) {
-				t_closest = t;
-				Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
+            double determinant = ray.d.dot(surface.frame.z);
+            if (determinant == 0) {
+                // if parallel
+                continue;
+            }
+            var t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
+            var point = ray.eval(t);
+            Vector offset = point - surface.frame.o;
+            if (offset.x.abs() > surface.size || offset.y.abs() > surface.size) {
+                // if off the quad
+                continue;
+            }
+            if (ray.valid(t) && t < t_closest) {
+                t_closest = t;
+                Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
                 Frame frame = Frame(o:point, z:surface.frame.z);
                 intersection = Intersection(frame, surface.material, t);
-			}
-			
-		}
+            }
+
+        }
     }
 
     // for each surface
@@ -151,6 +151,14 @@ RGBColor irradiance(Scene scene, Ray ray) {
     if (intersection != null) {
         RGBColor color = scene.ambientIntensity * intersection.material.kd;
         for (Light light in scene.lights) {
+            // cast light ray to detect shadow FIXME: shadow ray not working
+            Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
+            print("shadowRay: ${shadowRay}");
+            Intersection obstruction = intersectRayScene(scene, shadowRay);
+            if (obstruction != null) {
+                print("obstruction.distance: ${obstruction.distance}");
+                continue;
+            }
             Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
             Direction viewingDirection = Direction.fromPoints(scene.camera.eye, intersection.frame.o);
             // the cos of the angle between normal and light direction
