@@ -193,25 +193,6 @@ Image raytraceScene(Scene scene) {
             image.setPixelSafe(j, i, pixelColor);
         }
     }
-
-    // if no anti-aliasing
-    //     foreach image row (scene.resolution.height)
-    //         foreach pixel in row (scene.resolution.width)
-    //             compute ray-camera parameters (u,v) for pixel
-    //             compute camera ray
-    //             set pixel to color raytraced with ray (`irradiance`)
-    // else
-    //     foreach image row
-    //         foreach pixel in row
-    //             init accumulated color
-    //             foreach sample in y
-    //                 foreach sample in x
-    //                     compute ray-camera parameters
-    //                     computer camera ray
-    //                     accumulate color raytraced with ray
-    //             set pixel to average of accum color (scale by number of samples)
-    // return rendered image
-
     return image;
 }
 
