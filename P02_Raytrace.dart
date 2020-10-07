@@ -59,8 +59,6 @@ List<String> scenePaths = [
     'scenes/P02_08_aa.json',
 ];
 
-
-
 // Determines if given ray intersects any surface in the scene.
 // If ray does not intersect anything, null is returned.
 // Otherwise, details of first intersection are returned as an `Intersection` object.
@@ -168,16 +166,28 @@ Image raytraceScene(Scene scene) {
     var image = Image(scene.resolution.width, scene.resolution.height);
     var camera = scene.camera;
 
-    for (var row=0; row<image.height; row++) {
-        for (var col=0; col<image.width; col++) {
-            var horizontalOffset = ((col+0.5)/image.width-0.5) * (camera.sensorSize.width);
-            var verticalOffset = -((row+0.5)/image.height-0.5) * (camera.sensorSize.height);
-            Point pixelPoint = camera.frame.l2wPoint(
-                    Point(horizontalOffset, verticalOffset, -camera.sensorDistance));
-            Ray ray = Ray(camera.eye, Direction.fromPoints(camera.eye, pixelPoint));
-            // do stuff here with pixel
-            RGBColor pixelColor = irradiance(scene, ray);
-            image.setPixelSafe(col, row, pixelColor);
+    for (var i=0; i<image.height; i++) {
+        for (var j=0; j<image.width; j++) {
+            RGBColor pixelColor = RGBColor.black();
+
+            int ps = scene.pixelSamples;
+            // sample subpixels
+            for (var ii=0; ii<ps; ii++) {
+                for (var jj=0; jj<ps; jj++) {
+                    // calculate offset from center, range from -0.5 to 0.5 of sensor width/height respectively
+                    double h = ((j+(jj+0.5)/ps)/image.width-0.5) * (camera.sensorSize.width);
+                    double v = -((i+(ii+0.5)/ps)/image.height-0.5) * (camera.sensorSize.height);
+
+                    // get ray
+                    Point pixelPoint = camera.frame.l2wPoint(Point(h, v, -camera.sensorDistance));
+                    Ray ray = Ray(camera.eye, Direction.fromPoints(camera.eye, pixelPoint));
+
+                    // do stuff here with pixel
+                    pixelColor += irradiance(scene, ray);
+                }
+            }
+            pixelColor /= ps*ps; // average the result
+            image.setPixelSafe(j, i, pixelColor);
         }
     }
 
@@ -198,8 +208,6 @@ Image raytraceScene(Scene scene) {
     //                     accumulate color raytraced with ray
     //             set pixel to average of accum color (scale by number of samples)
     // return rendered image
-
-
 
     return image;
 }
