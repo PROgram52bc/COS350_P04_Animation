@@ -170,7 +170,7 @@ Image raytraceScene(Scene scene) {
         for (var j=0; j<image.width; j++) {
             RGBColor pixelColor = RGBColor.black();
 
-            int ps = scene.pixelSamples;
+            int ps = sqrt(scene.pixelSamples).toInt();
             // sample subpixels
             for (var ii=0; ii<ps; ii++) {
                 for (var jj=0; jj<ps; jj++) {
