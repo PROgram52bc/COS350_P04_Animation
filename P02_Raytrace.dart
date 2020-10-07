@@ -57,6 +57,7 @@ List<String> scenePaths = [
     'scenes/P02_06_balls_on_plane.json',
     'scenes/P02_07_reflection.json',
     'scenes/P02_08_aa.json',
+//   'scenes/P02_09_refraction.json',
 ];
 
 // Determines if given ray intersects any surface in the scene.
@@ -149,10 +150,12 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
             color += specular;
         }
         // calculate reflection
-        Ray reflectionRay = Ray(intersection.frame.o,
-                Direction.fromVector(-intersection.n * 2 * ray.d.dot(intersection.n) + ray.d));
-        RGBColor reflection = intersection.material.kr * irradiance(scene, reflectionRay, depth+1);
-        color += reflection;
+		if (!intersection.material.kr.isBlack) {
+			Ray reflectionRay = Ray(intersection.frame.o,
+					Direction.fromVector(-intersection.n * 2 * ray.d.dot(intersection.n) + ray.d));
+			RGBColor reflection = intersection.material.kr * irradiance(scene, reflectionRay, depth+1);
+			color += reflection;
+		}
         // TODO: calculate refraction
         return color;
     }
