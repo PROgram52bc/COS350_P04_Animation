@@ -108,7 +108,9 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
                 Frame frame = Frame(o:point, z:surface.frame.z);
                 intersection = Intersection(frame, surface, t);
             }
-        }
+        } else if (surface.type == 'triangle') {
+			// process triangle
+		}
     }
     return intersection;
 }
@@ -123,18 +125,23 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
     if (intersection != null) {
         RGBColor color = scene.ambientIntensity * intersection.material.kd;
         for (Light light in scene.lights) {
-            Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
-            Intersection obstruction = intersectRayScene(scene, shadowRay);
-            if (obstruction != null) {
-                // TODO: handle refraction or transparency, so that only part of the light is obstructed?
-                continue;
-            }
-            Direction lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
+			Direction lightDirection;
+			if (light.type == 'point') { 
+				Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
+				Intersection obstruction = intersectRayScene(scene, shadowRay);
+				if (obstruction != null) {
+					// possible todo: handle refraction or transparency, so that only part of the light is obstructed?
+					continue;
+				}
+				lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
+			} else if (light.type == 'direction') {
+				// TODO: distinguish between point light and direction light
+			}
             Direction viewingDirection = Direction.fromPoints(ray.e, intersection.frame.o);
             // the cos of the angle between normal and light direction
             // negative if normal and light forms an acute angle
             double normalFraction = intersection.n.dot(-lightDirection);
-            // TODO: add attenuation to light property
+            // possible todo: add attenuation to light property
             double attenuation = 1;
             RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
             // calculate diffuse light
