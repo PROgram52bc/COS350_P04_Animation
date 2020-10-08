@@ -55,12 +55,14 @@ class Surface {
 class Light {
     var frame     = Frame();
     var intensity = RGBColor(1, 1, 1);
+	var type      = 'point';
 
     Light();
 
     Light.fromJson(JsonLoader loader) {
         frame     = loader.loadObject('frame',     (d)=>Frame.fromJson(d))    ?? frame;
         intensity = loader.loadObject('intensity', (d)=>RGBColor.fromJson(d)) ?? intensity;
+        type      = loader.loadObject('type',      (d)=>RGBColor.fromJson(d)) ?? type;
     }
 }
 
