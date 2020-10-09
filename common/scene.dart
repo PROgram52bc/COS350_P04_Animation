@@ -21,6 +21,8 @@ class Material {
     var ks = RGBColor.black();
     var n  = 10.0;
     var kr = RGBColor.black();
+    var kt = RGBColor.black();
+    var nr = 1.6; // refractive index
 
     Material();
 
@@ -29,6 +31,8 @@ class Material {
         ks = loader.loadObject('ks', (d)=>RGBColor.fromJson(d)) ?? ks;
         n  = loader.loadDouble('n')                             ?? n;
         kr = loader.loadObject('kr', (d)=>RGBColor.fromJson(d)) ?? kr;
+        kt = loader.loadObject('kt', (d)=>RGBColor.fromJson(d)) ?? kt;
+        nr = loader.loadDouble('nr')                            ?? nr;
     }
 }
 
