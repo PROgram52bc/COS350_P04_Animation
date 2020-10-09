@@ -41,24 +41,24 @@ bool writeImageInBinary = true;
 Size2i overrideResolution = null;
 // Size2i overrideResolution = Size2i(32, 32);     // uncomment to render 64x64 image
 
-const int irradianceMaxDepth = 5;
+const int irradianceMaxDepth = 3;
 
 // Comment out lines below to prevent re-rendering every scene.
 // If you create a new scene file, add it to the list below.
 // NOTE: **BEFORE** you submit your solution, uncomment all lines, so
 //       your code will render all the scenes!
 List<String> scenePaths = [
-    // 'scenes/P02_00_sphere.json',
-    // 'scenes/P02_01_sphere_ka.json',
-    // 'scenes/P02_02_sphere_room.json',
-    // 'scenes/P02_03_quad.json',
-    // 'scenes/P02_04_quad_room.json',
-    // 'scenes/P02_05_ball_on_plane.json',
-    // 'scenes/P02_06_balls_on_plane.json',
-    // 'scenes/P02_07_reflection.json',
-    // 'scenes/P02_08_aa.json',
-    // 'scenes/P02_09_refraction.json',
-    // 'scenes/P02_10_direction_light.json',
+    'scenes/P02_00_sphere.json',
+    'scenes/P02_01_sphere_ka.json',
+    'scenes/P02_02_sphere_room.json',
+    'scenes/P02_03_quad.json',
+    'scenes/P02_04_quad_room.json',
+    'scenes/P02_05_ball_on_plane.json',
+    'scenes/P02_06_balls_on_plane.json',
+    'scenes/P02_07_reflection.json',
+    'scenes/P02_08_aa.json',
+    'scenes/P02_09_refraction.json',
+    'scenes/P02_10_direction_light.json',
     'scenes/P02_11_triangle.json'
 ];
 
