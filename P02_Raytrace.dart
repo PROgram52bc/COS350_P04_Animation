@@ -41,24 +41,25 @@ bool writeImageInBinary = true;
 Size2i overrideResolution = null;
 // Size2i overrideResolution = Size2i(32, 32);     // uncomment to render 64x64 image
 
-const int irradianceMaxDepth = 3;
+const int irradianceMaxDepth = 5;
 
 // Comment out lines below to prevent re-rendering every scene.
 // If you create a new scene file, add it to the list below.
 // NOTE: **BEFORE** you submit your solution, uncomment all lines, so
 //       your code will render all the scenes!
 List<String> scenePaths = [
-    'scenes/P02_00_sphere.json',
-    'scenes/P02_01_sphere_ka.json',
-    'scenes/P02_02_sphere_room.json',
-    'scenes/P02_03_quad.json',
-    'scenes/P02_04_quad_room.json',
-    'scenes/P02_05_ball_on_plane.json',
-    'scenes/P02_06_balls_on_plane.json',
-    'scenes/P02_07_reflection.json',
-    'scenes/P02_08_aa.json',
+    // 'scenes/P02_00_sphere.json',
+    // 'scenes/P02_01_sphere_ka.json',
+    // 'scenes/P02_02_sphere_room.json',
+    // 'scenes/P02_03_quad.json',
+    // 'scenes/P02_04_quad_room.json',
+    // 'scenes/P02_05_ball_on_plane.json',
+    // 'scenes/P02_06_balls_on_plane.json',
+    // 'scenes/P02_07_reflection.json',
+    // 'scenes/P02_08_aa.json',
     // 'scenes/P02_09_refraction.json',
-    'scenes/P02_10_direction_light.json',
+    // 'scenes/P02_10_direction_light.json',
+    'scenes/P02_11_triangle.json'
 ];
 
 // Determines if given ray intersects any surface in the scene.
@@ -110,8 +111,29 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
                 intersection = Intersection(frame, surface, t);
             }
         } else if (surface.type == 'triangle') {
-			// process triangle
-		}
+            double determinant = ray.d.dot(surface.frame.z);
+            if (determinant == 0) {
+                // if parallel
+                continue;
+            }
+            double t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
+            Point point = ray.eval(t);
+            // check if point is in triangle
+            Point c = surface.frame.o + surface.frame.y * surface.size;
+            Point a = c + ((-surface.frame.y * 3/2 - surface.frame.x * sqrt(3)/2) * surface.size);
+            Point b = c + ((-surface.frame.y * 3/2 + surface.frame.x * sqrt(3)/2) * surface.size);
+            double alpha = ray.d.cross(b-c).dot(ray.e-c) / ray.d.cross(b-c).dot(a-c);
+            double beta = (ray.e-c).cross(a-c).dot(ray.d) / ray.d.cross(b-c).dot(a-c);
+            if (alpha<0 || beta<0 || alpha+beta>1) {
+                continue;
+            }
+            if (ray.valid(t) && t < t_closest) {
+                t_closest = t;
+                Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
+                Frame frame = Frame(o:point, z:surface.frame.z);
+                intersection = Intersection(frame, surface, t);
+            }
+        }
     }
     return intersection;
 }

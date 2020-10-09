@@ -1,0 +1,16 @@
+{
+    "camera": { "eye": [4,4,4], "target": [0,2,0] },
+    "surfaces": [
+        { "type": "triangle", "frame": { "o": [0,3,0] }, "size": 0.5, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,3,0], "y": [0,1,0], "z": [1,0,0] }, "size": 0.5, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,2.5,0] }, "size": 0.6, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,2.5,0], "y": [0,1,0], "z": [1,0,0]  }, "size": 0.6, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,2,0] }, "size": 0.7, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,2,0] , "y": [0,1,0], "z": [1,0,0] }, "size": 0.7, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,1.5,0] }, "size": 0.8, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } },
+        { "type": "triangle", "frame": { "o": [0,1.5,0], "y": [0,1,0], "z": [1,0,0] }, "size": 0.8, "material": { "kd": [0.1,1,0.1], "ks": [0,0,0], "n": 100 } }
+    ],
+    "lights": [
+        { "frame": { "o": [0,0,5] }, "intensity": [10,10,10] }
+    ]
+}
