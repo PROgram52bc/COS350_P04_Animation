@@ -57,7 +57,8 @@ List<String> scenePaths = [
     'scenes/P02_06_balls_on_plane.json',
     'scenes/P02_07_reflection.json',
     'scenes/P02_08_aa.json',
-//   'scenes/P02_09_refraction.json',
+    // 'scenes/P02_09_refraction.json',
+    'scenes/P02_10_direction_light.json',
 ];
 
 // Determines if given ray intersects any surface in the scene.
@@ -125,25 +126,29 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
     if (intersection != null) {
         RGBColor color = scene.ambientIntensity * intersection.material.kd;
         for (Light light in scene.lights) {
-			Direction lightDirection;
-			if (light.type == 'point') { 
-				Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
-				Intersection obstruction = intersectRayScene(scene, shadowRay);
-				if (obstruction != null) {
-					// possible todo: handle refraction or transparency, so that only part of the light is obstructed?
-					continue;
-				}
-				lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
-			} else if (light.type == 'direction') {
-				// TODO: distinguish between point light and direction light
-			}
+            Direction lightDirection;
+            Ray shadowRay;
+            if (light.type == 'point') { 
+                shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
+                lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
+            } else if (light.type == 'direction') {
+                shadowRay = Ray(intersection.o, -light.frame.z);
+                lightDirection = light.frame.z;
+            }
+            Intersection obstruction = intersectRayScene(scene, shadowRay);
+            if (obstruction != null) {
+                // possible todo: handle refraction or transparency, so that only part of the light is obstructed?
+                continue;
+            }
             Direction viewingDirection = Direction.fromPoints(ray.e, intersection.frame.o);
             // the cos of the angle between normal and light direction
             // negative if normal and light forms an acute angle
             double normalFraction = intersection.n.dot(-lightDirection);
             // possible todo: add attenuation to light property
-            double attenuation = 1;
-            RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
+            RGBColor response = light.intensity;
+            if (light.type == 'point') {
+                response /= (light.frame.o-intersection.frame.o).lengthSquared;
+            }
             // calculate diffuse light
             var diffuse = response * intersection.material.kd * normalFraction;
             color += diffuse;

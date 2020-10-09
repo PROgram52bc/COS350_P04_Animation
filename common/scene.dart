@@ -62,7 +62,7 @@ class Light {
     Light.fromJson(JsonLoader loader) {
         frame     = loader.loadObject('frame',     (d)=>Frame.fromJson(d))    ?? frame;
         intensity = loader.loadObject('intensity', (d)=>RGBColor.fromJson(d)) ?? intensity;
-        type      = loader.loadObject('type',      (d)=>RGBColor.fromJson(d)) ?? type;
+        type      = loader.loadString('type')                                 ?? type;
     }
 }
 
