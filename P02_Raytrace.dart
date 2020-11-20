@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:math';
+import 'dart:isolate';
 
 import 'common/image.dart';
 import 'common/jsonloader.dart';
@@ -47,18 +48,6 @@ const int irradianceMaxDepth = 3;
 // If you create a new scene file, add it to the list below.
 // NOTE: **BEFORE** you submit your solution, uncomment all lines, so
 //       your code will render all the scenes!
-List<String> scenePaths = [
-    'scenes/P02_00_sphere.json',
-    'scenes/P02_01_sphere_ka.json',
-    'scenes/P02_02_sphere_room.json',
-    'scenes/P02_03_quad.json',
-    'scenes/P02_04_quad_room.json',
-    'scenes/P02_05_ball_on_plane.json',
-    'scenes/P02_06_balls_on_plane.json',
-    'scenes/P02_07_reflection.json',
-    'scenes/P02_08_aa.json',
-//   'scenes/P02_09_refraction.json',
-];
 
 // Determines if given ray intersects any surface in the scene.
 // If ray does not intersect anything, null is returned.
@@ -203,33 +192,37 @@ Image raytraceScene(Scene scene) {
     return image;
 }
 
-void main() {
+void computeScene(args) {
+    var scenePath = args[0];
+    var sendPort = args[1];
+    // Determine where to write the rendered image.
+    // NOTE: the following line is not safe, but it is fine for this project.
+    print('Scene: $scenePath...');
+    var ppmPath = scenePath.replaceAll('.json', '.ppm').replaceAll('scenes/', 'images/');
+    var loader = JsonLoader(path:scenePath);    // load json file
+    var scene = Scene.fromJson(loader);         // parse json file as Scene
+
+    // override scene's resolution
+    if(overrideResolution != null)
+        scene.resolution = overrideResolution;
+    var image = raytraceScene(scene);                   // raytrace the scene
+    image.saveImage(ppmPath, asBinary:writeImageInBinary);  // write raytraced image to PPM file
+    print('    output image: $ppmPath');
+    // report details to console
+    sendPort.send(scenePath);
+}
+
+void main(scenePaths) async {
     // Make sure images folder exists, because this is where all generated images will be saved
     Directory('images').createSync();
-
-    for(String scenePath in scenePaths) {
-        // Determine where to write the rendered image.
-        // NOTE: the following line is not safe, but it is fine for this project.
-        var ppmPath = scenePath.replaceAll('.json', '.ppm').replaceAll('scenes/', 'images/');
-
-        print('Scene: $scenePath');
-        print('    output image: $ppmPath');
-        print('    loading...');
-        var loader = JsonLoader(path:scenePath);    // load json file
-        var scene = Scene.fromJson(loader);         // parse json file as Scene
-
-        // override scene's resolution
-        if(overrideResolution != null)
-            scene.resolution = overrideResolution;
-
-        print('    tracing rays...');
-        Stopwatch watch = Stopwatch()..start();             // create Stopwatch, then start it (NOTE: keep the two ..)
-        var image = raytraceScene(scene);                   // raytrace the scene
-        var seconds = watch.elapsedMilliseconds / 1000.0;   // determine elapsed time in seconds
-
-        image.saveImage(ppmPath, asBinary:writeImageInBinary);  // write raytraced image to PPM file
-
-        // report details to console
-        print('    time:  $seconds seconds');               // note: includes time for saving file
+    var receivePort = ReceivePort();
+    for (String scenePath in scenePaths) {
+        Isolate.spawn(computeScene, [scenePath, receivePort.sendPort]);
+    }
+    var count = 0;
+    await for (var scenePath in receivePort) {
+        print("$scenePath done!");
+        count+=1;
+        if (count >= scenePaths.length) receivePort.close();
     }
 }
