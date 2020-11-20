@@ -98,8 +98,29 @@ Intersection intersectRayScene(Scene scene, Ray ray) {
                 intersection = Intersection(frame, surface, t);
             }
         } else if (surface.type == 'triangle') {
-			// process triangle
-		}
+            double determinant = ray.d.dot(surface.frame.z);
+            if (determinant == 0) {
+                // if parallel
+                continue;
+            }
+            double t = surface.frame.z.dot(surface.frame.o - ray.e)/determinant;
+            Point point = ray.eval(t);
+            // check if point is in triangle
+            Point c = surface.frame.o + surface.frame.y * surface.size;
+            Point a = c + ((-surface.frame.y * 3/2 - surface.frame.x * sqrt(3)/2) * surface.size);
+            Point b = c + ((-surface.frame.y * 3/2 + surface.frame.x * sqrt(3)/2) * surface.size);
+            double alpha = ray.d.cross(b-c).dot(ray.e-c) / ray.d.cross(b-c).dot(a-c);
+            double beta = (ray.e-c).cross(a-c).dot(ray.d) / ray.d.cross(b-c).dot(a-c);
+            if (alpha<0 || beta<0 || alpha+beta>1) {
+                continue;
+            }
+            if (ray.valid(t) && t < t_closest) {
+                t_closest = t;
+                Direction normal = determinant < 0 ? surface.frame.z : -surface.frame.z;
+                Frame frame = Frame(o:point, z:surface.frame.z);
+                intersection = Intersection(frame, surface, t);
+            }
+        }
     }
     return intersection;
 }
@@ -113,46 +134,63 @@ RGBColor irradiance(Scene scene, Ray ray, [int depth=0]) {
     Intersection intersection = intersectRayScene(scene, ray);
     if (intersection != null) {
         RGBColor color = scene.ambientIntensity * intersection.material.kd;
+        Direction viewingDirection = Direction.fromPoints(ray.e, intersection.frame.o);
         for (Light light in scene.lights) {
-			Direction lightDirection;
-			if (light.type == 'point') { 
-				Ray shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
-				Intersection obstruction = intersectRayScene(scene, shadowRay);
-				if (obstruction != null) {
-					// possible todo: handle refraction or transparency, so that only part of the light is obstructed?
-					continue;
-				}
-				lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
-			} else if (light.type == 'direction') {
-				// TODO: distinguish between point light and direction light
-			}
-            Direction viewingDirection = Direction.fromPoints(ray.e, intersection.frame.o);
+            Direction lightDirection;
+            Ray shadowRay;
+            if (light.type == 'point') { 
+                shadowRay = Ray.fromPoints(intersection.o, light.frame.o);
+                lightDirection = Direction.fromPoints(light.frame.o, intersection.frame.o);
+            } else if (light.type == 'direction') {
+                shadowRay = Ray(intersection.o, -light.frame.z);
+                lightDirection = light.frame.z;
+            }
+            Intersection obstruction = intersectRayScene(scene, shadowRay);
+            if (obstruction != null) {
+                // possible todo: handle refraction or transparency, so that only part of the light is obstructed?
+                continue;
+            }
             // the cos of the angle between normal and light direction
             // negative if normal and light forms an acute angle
-            double normalFraction = intersection.n.dot(-lightDirection);
-            // possible todo: add attenuation to light property
-            double attenuation = 1;
-            RGBColor response = light.intensity * attenuation / (light.frame.o-intersection.frame.o).lengthSquared;
-            // calculate diffuse light
-            var diffuse = response * intersection.material.kd * normalFraction;
-            color += diffuse;
-            // calculate specular light
-            Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
-            var specular = response
-                    * intersection.material.ks
-                    * pow(max(0, intersection.n.dot(bisector)),
-                            intersection.material.n)
-                    * normalFraction;
-            color += specular;
+            double lightNormal = intersection.n.dot(-lightDirection);
+            double viewingNormal = intersection.n.dot(-viewingDirection);
+            if (lightNormal * viewingNormal > 0) {
+                // light reflects only if light and eye are on the same side of the surface
+                RGBColor response = light.intensity;
+                if (light.type == 'point') {
+                    response /= (light.frame.o-intersection.frame.o).lengthSquared;
+                }
+                // calculate diffuse light
+                var diffuse = response * intersection.material.kd * lightNormal;
+                color += diffuse;
+                // calculate specular light
+                Direction bisector = Direction.fromVector(-lightDirection-viewingDirection);
+                var specular = response
+                        * intersection.material.ks
+                        * pow(max(0, intersection.n.dot(bisector)),
+                                intersection.material.n)
+                        * lightNormal;
+                color += specular;
+            }
         }
         // calculate reflection
-		if (!intersection.material.kr.isBlack) {
-			Ray reflectionRay = Ray(intersection.frame.o,
-					Direction.fromVector(-intersection.n * 2 * ray.d.dot(intersection.n) + ray.d));
-			RGBColor reflection = intersection.material.kr * irradiance(scene, reflectionRay, depth+1);
-			color += reflection;
-		}
-        // TODO: calculate refraction
+        if (!intersection.material.kr.isBlack) {
+            Ray reflectionRay = Ray(intersection.frame.o,
+                    Direction.fromVector(-intersection.n * 2 * ray.d.dot(intersection.n) + ray.d));
+            RGBColor reflection = intersection.material.kr * irradiance(scene, reflectionRay, depth+1);
+            color += reflection;
+        }
+        // calculate refraction
+        if (!intersection.material.kt.isBlack) {
+            bool into = intersection.n.dot(viewingDirection) < 0;
+            double ratio = into ? 1/intersection.material.nr : intersection.material.nr; 
+            Vector horizontal = intersection.n.cross(viewingDirection).cross(intersection.n) * ratio;
+            Vector vertical = intersection.n * sqrt(1-pow(ratio * intersection.n.cross(viewingDirection).lengthSquared, 2));
+            vertical = into ? -vertical : vertical;
+            Ray refractionRay = Ray(intersection.frame.o, Direction.fromVector(horizontal+vertical));
+            RGBColor refraction = intersection.material.kt * irradiance(scene, refractionRay, depth+1);
+            color += refraction;
+        }
         return color;
     }
     else {
@@ -220,7 +258,7 @@ void main(scenePaths) async {
         Isolate.spawn(computeScene, [scenePath, receivePort.sendPort]);
     }
     var count = 0;
-    await for (var scenePath in receivePort) {
+    await for (String scenePath in receivePort) {
         print("$scenePath done!");
         count+=1;
         if (count >= scenePaths.length) receivePort.close();
