@@ -232,11 +232,10 @@ Image raytraceScene(Scene scene) {
 
 void computeScene(args) {
     var scenePath = args[0];
-    var sendPort = args[1];
+    var framePath = args[1];
+    var sendPort = args[2];
     // Determine where to write the rendered image.
-    // NOTE: the following line is not safe, but it is fine for this project.
     print('Scene: $scenePath...');
-    var ppmPath = scenePath.replaceAll('.json', '.ppm').replaceAll('scenes/', 'images/');
     var loader = JsonLoader(path:scenePath);    // load json file
     var scene = Scene.fromJson(loader);         // parse json file as Scene
 
@@ -244,23 +243,35 @@ void computeScene(args) {
     if(overrideResolution != null)
         scene.resolution = overrideResolution;
     var image = raytraceScene(scene);                   // raytrace the scene
-    image.saveImage(ppmPath, asBinary:writeImageInBinary);  // write raytraced image to PPM file
-    print('    output image: $ppmPath');
+    image.saveImage(framePath, asBinary:writeImageInBinary);  // write raytraced image to PPM file
     // report details to console
-    sendPort.send(scenePath);
+    sendPort.send(framePath);
 }
 
-void main(scenePaths) async {
+void main(args) async {
+    // ad-hoc functionality, should be replaced by direct video generator
+    if (args.length != 2) {
+        print("Invalid arguments. Usage: raytrace.dart [scenesDir] [framesDir]");
+        return;
+    }
+    var scenesDir = args[0];
+    var framesDir = args[1];
+    // list all scene files in scenesDir
+    var sceneFiles = Directory(scenesDir).listSync().map((file) => file.path);
     // Make sure images folder exists, because this is where all generated images will be saved
-    Directory('images').createSync();
+    Directory('${framesDir}').createSync(recursive:true);
+
+    // ray trace each scene in parallel
     var receivePort = ReceivePort();
-    for (String scenePath in scenePaths) {
-        Isolate.spawn(computeScene, [scenePath, receivePort.sendPort]);
+    for (String sceneFile in sceneFiles) {
+        var baseName = sceneFile.split('/').last.replaceAll(".json", ".ppm");
+        var frameFile = '${framesDir}/${baseName}';
+        Isolate.spawn(computeScene, [sceneFile, frameFile, receivePort.sendPort]);
     }
     var count = 0;
-    await for (String scenePath in receivePort) {
-        print("$scenePath done!");
+    await for (String framePath in receivePort) {
+        print("${framePath} done!");
         count+=1;
-        if (count >= scenePaths.length) receivePort.close();
+        if (count >= sceneFiles.length) receivePort.close();
     }
 }
