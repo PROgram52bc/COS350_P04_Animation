@@ -4,6 +4,8 @@ abstract class AnimatedProperty {
     AnimatedProperty(/* pass various properties and initialize here in subclass */);
     void advance();
     dynamic get current; // returns the current frame
+    // void injectJSON(path, json) {
+    // }
 }
 
 class LinearAnimation extends AnimatedProperty {

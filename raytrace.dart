@@ -258,20 +258,41 @@ void main(args) async {
     var framesDir = args[1];
     // list all scene files in scenesDir
     var sceneFiles = Directory(scenesDir).listSync().map((file) => file.path);
+    var sceneFilesIt = sceneFiles.iterator;
     // Make sure images folder exists, because this is where all generated images will be saved
     Directory('${framesDir}').createSync(recursive:true);
 
     // ray trace each scene in parallel
+    const int maxThread = 4;
+    int currNumThread = 0;
+    int maxTasks = sceneFiles.length;
+    int completedTasks = 0;
     var receivePort = ReceivePort();
-    for (String sceneFile in sceneFiles) {
+    receivePort.listen((framePath) {
+        print("${framePath} done!");
+        // add in new task if there is capacity
+        var cont = sceneFilesIt.moveNext();
+        if (!cont) { 
+            receivePort.close();
+            return;
+        }
+        var sceneFile = sceneFilesIt.current;
         var baseName = sceneFile.split('/').last.replaceAll(".json", ".ppm");
         var frameFile = '${framesDir}/${baseName}';
         Isolate.spawn(computeScene, [sceneFile, frameFile, receivePort.sendPort]);
-    }
-    var count = 0;
-    await for (String framePath in receivePort) {
-        print("${framePath} done!");
-        count+=1;
-        if (count >= sceneFiles.length) receivePort.close();
+    }, onDone: () {
+        print("Done!");
+    });
+    // start the first maxThread jobs
+    for (int i=0; i < maxThread; i++) {
+        var cont = sceneFilesIt.moveNext();
+        if (!cont) { 
+            receivePort.close();
+            return;
+        }
+        var sceneFile = sceneFilesIt.current;
+        var baseName = sceneFile.split('/').last.replaceAll(".json", ".ppm");
+        var frameFile = '${framesDir}/${baseName}';
+        Isolate.spawn(computeScene, [sceneFile, frameFile, receivePort.sendPort]);
     }
 }
