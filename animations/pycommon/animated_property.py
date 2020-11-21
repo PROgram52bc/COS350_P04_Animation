@@ -69,38 +69,17 @@ class LerpPoint(AnimatedProperty):
         self.infinite = kwargs.get('infinite', False)
         self.increment = self.end - self.start
 
-        self.lerp_x = LerpValue(
-            start=self.start.x,
-            end=self.end.x,
-            infinite=self.infinite,
-            speed=(self.speed *
-                   abs(self.increment.x) /
-                   self.increment.length))
+        sei = zip(self.start.toList(), self.end.toList(), self.increment.toList())
 
-        self.lerp_y = LerpValue(
-            start=self.start.y,
-            end=self.end.y,
-            infinite=self.infinite,
-            speed=(self.speed *
-                   abs(self.increment.y) /
-                   self.increment.length))
-
-        self.lerp_z = LerpValue(
-            start=self.start.z,
-            end=self.end.z,
-            infinite=self.infinite,
-            speed=(self.speed *
-                   abs(self.increment.z) /
-                   self.increment.length))
-
-        self.lerp_values = [self.lerp_x, self.lerp_y, self.lerp_z]
+        self.lerp_xyz = [ LerpValue(start=start, end=end, infinite=self.infinite, speed=(
+            self.speed * abs(increment) / self.increment.length)) for start, end, increment in sei ]
 
     def __iter__(self):
         """TODO: Docstring for __iter__.
         :returns: TODO
 
         """
-        its = [ iter(lerp_value) for lerp_value in self.lerp_values ]
+        its = [ iter(lerp_value) for lerp_value in self.lerp_xyz ]
         while True:
             try:
                 yield [ next(it) for it in its ]
