@@ -269,7 +269,8 @@ void main(args) async {
     int completedTasks = 0;
     var receivePort = ReceivePort();
     receivePort.listen((framePath) {
-        print("${framePath} done!");
+    	completedTasks += 1;
+        print("(${completedTasks}/${maxTasks}) ${framePath} done!");
         // add in new task if there is capacity
         var cont = sceneFilesIt.moveNext();
         if (!cont) { 

@@ -5,7 +5,7 @@ from .maths import Point
 class PlanetScene(AnimatedProperty):
     def __init__(self, cameraStartPoint, cameraEndPoint, **kwargs):
         super().__init__(**kwargs)
-        self.cameraEye = LerpPoint(start=cameraStartPoint, end=cameraEndPoint, infinite=True, speed=self.speed)
+        self.cameraEye = LerpPoint(start=cameraStartPoint, end=cameraEndPoint, speed=self.speed)
 
     def __iter__(self):
         cameraEye = iter(self.cameraEye)

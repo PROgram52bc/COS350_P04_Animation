@@ -74,7 +74,7 @@ class LerpPoint(AnimatedProperty):
             end=self.end.x,
             infinite=self.infinite,
             speed=(self.speed *
-                   self.increment.x /
+                   abs(self.increment.x) /
                    self.increment.length))
 
         self.lerp_y = LerpValue(
@@ -82,7 +82,7 @@ class LerpPoint(AnimatedProperty):
             end=self.end.y,
             infinite=self.infinite,
             speed=(self.speed *
-                   self.increment.y /
+                   abs(self.increment.y) /
                    self.increment.length))
 
         self.lerp_z = LerpValue(
@@ -90,7 +90,7 @@ class LerpPoint(AnimatedProperty):
             end=self.end.z,
             infinite=self.infinite,
             speed=(self.speed *
-                   self.increment.z /
+                   abs(self.increment.z) /
                    self.increment.length))
 
         self.lerp_values = [self.lerp_x, self.lerp_y, self.lerp_z]
