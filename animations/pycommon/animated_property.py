@@ -75,10 +75,6 @@ class LerpPoint(AnimatedProperty):
             self.speed * abs(increment) / self.increment.length)) for start, end, increment in sei ]
 
     def __iter__(self):
-        """TODO: Docstring for __iter__.
-        :returns: TODO
-
-        """
         its = [ iter(lerp_value) for lerp_value in self.lerp_xyz ]
         while True:
             try:

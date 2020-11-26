@@ -36,8 +36,8 @@ if [ ! -d $scene_data_dir ] ||
 	confirm "$scene_data_dir already has $(ls -l $scene_data_dir | wc -l) frame files. Rebuild frame data?"; then
 	mkdir -p $scene_data_dir
 	echo building frame data...
-	echo python3 build_frames.py $animation_script $scene_data_dir
-	python3 build_frames.py $animation_script $scene_data_dir
+	echo python3 framebuilder.py $animation_script $scene_data_dir
+	python3 framebuilder.py $animation_script $scene_data_dir
 	if [ $? -ne 0 ]; then
 		echo failed building frame data.
 		exit -2

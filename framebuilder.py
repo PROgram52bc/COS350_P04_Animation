@@ -4,7 +4,7 @@ import json
 
 from animations.pycommon.maths import Point
 from animations.pycommon.animated_property import LerpPoint, LerpValue
-from animations.pycommon.animated_scenes import PlanetScene
+from animations.pycommon.scene_planet import PlanetScene
 
 scenes = {
         'PlanetScene': PlanetScene,
