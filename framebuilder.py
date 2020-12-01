@@ -32,7 +32,7 @@ for i, frame in enumerate(scene):
     out_file = f"{i:04}.json"
     out_name = os.path.join(out_dir, out_file)
     with open(out_name, "w") as f:
-        json.dump(frame, f)
+        json.dump(frame.get_frame_data(), f)
     print(f"Written frame data to {out_name}")
 
 

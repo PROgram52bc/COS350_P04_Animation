@@ -7,6 +7,9 @@ class PlanetScene(AnimatedProperty):
         super().__init__(**kwargs)
         self.cameraEye = LerpPoint(start=cameraStartPoint, end=cameraEndPoint, speed=self.speed)
 
+    def next_frame(self):
+        pass
+
     def __iter__(self):
         cameraEye = iter(self.cameraEye)
         for _ in range(1000):  # maximum 1000 frames
