@@ -32,7 +32,13 @@ class AnimatedProperty:
 
     def terminator(self):
         def decorator_func(func):
+            print("Terminator registered")
             self.register_terminator(func)
+        return decorator_func
+    
+    def updater(self):
+        def decorator_func(func):
+            self.register_updater(func)
         return decorator_func
 
     class PropertyFrame:
@@ -116,7 +122,8 @@ class AnimatedProperty:
             if isinstance(data, self.PropertyFrame):
                 return data.get_frame_data()
             return data
-        return { k:_unpack_pf_or_data(v) for k,v in property_frame.props.items() }
+        return {k: _unpack_pf_or_data(v)
+                for k, v in property_frame.props.items()}
 
     def __init__(self):
         """
@@ -126,6 +133,7 @@ class AnimatedProperty:
         # { 'prop_name': { 'seed': ..., 'type': "animated|static|dynamic", 'end_action', 'end_value' }, ... }
         self.__prop_map = {}
         self.__terminators = []
+        self.__updaters = []
 
     # @property
     # def prop_map(self):
@@ -212,14 +220,15 @@ class AnimatedProperty:
         :prop: An AnimatedProperty object, or an iterable
         """
         if name not in self.__prop_map:
-            raise ValueError(f"Cannot append to non-existing child property [{name}]")
+            raise ValueError(
+                f"Cannot append to non-existing child property [{name}]")
         property_type = self.__prop_map[name]['type']
         if property_type != 'animated' and property_type != 'iterated':
-            raise ValueError(f"Cannot append property to non-iterable type [{property_type}]")
+            raise ValueError(
+                f"Cannot append property to non-iterable type [{property_type}]")
         seed = self.__prop_map[name]['seed']
         seed = chain(seed, prop)
         self.__prop_map[name]['seed'] = seed
-        
 
     def remove_child_property(self, name):
         """ reverses the effect of register_child_property
@@ -234,9 +243,17 @@ class AnimatedProperty:
         return self.__prop_map.pop(name)
 
     def register_terminator(self, terminator):
+        """ terminator accepts a PropertyFrame as argument """
         if not callable(terminator):
             raise ValueError("terminator must be callable")
         self.__terminators.append(terminator)
+
+    def register_updater(self, updater):
+        """ updater accepts the property_states to be updated, and the current PropertyFrame as arguments.
+        It will be nice to have a more nicely defined interface for modifying an AnimatedProperty at runtime """
+        if not callable(updater):
+            raise ValueError("updater must be callable")
+        self.__updaters.append(updater)
 
     def __iter__(self):
         property_states = {
@@ -254,6 +271,7 @@ class AnimatedProperty:
         while True:
             # update all animated and iterated properties, create a copy because properties
             # might be removed
+            # TODO: maybe change _advance_animated_and_iterated_property to advancing all at the same time to improve readability?
             for name in property_states.copy():
                 if (property_states[name]["type"] != "animated" and
                         property_states[name]["type"] != "iterated"):
@@ -267,14 +285,27 @@ class AnimatedProperty:
             snapshot = self._get_snapshot(property_states, frame_num)
 
             # check whether should terminate
+            print("self.__terminators: {}".format(self.__terminators))
             for terminate in self.__terminators:
                 if terminate(snapshot):
                     return
-            
+
             yield snapshot
+
+
             # update all dynamic properties
             for name in property_states:
                 if property_states[name]["type"] == "dynamic":
                     update = property_states[name]["dynamic_updater"]
                     property_states[name]["value"] = update(snapshot)
+
+            snapshot = self._get_snapshot(property_states, frame_num)
+
+            # use global updaters to update the properties
+            # this can be useful for checking collision between objects and update the animation, for example.
+            # temporary solution. Should have a more well-defined interface for modifying the runtime condition of an AnimatedProperty
+            # perhaps it is not even a good idea to modify an iterator during runtime...
+            for update in self.__updaters:
+                update(property_states, snapshot)
+
             frame_num += 1

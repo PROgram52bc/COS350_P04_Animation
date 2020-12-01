@@ -1,9 +1,9 @@
-from .animated_property import AnimatedProperty
-from .lerp_property import LerpPoint
-from .maths import Point
+from ..pycommon.animated_property import AnimatedProperty
+from ..pycommon.lerp_property import LerpPoint
+from ..pycommon.maths import Point
 
 
-class PlanetScene(AnimatedProperty):
+class MovingCamera(AnimatedProperty):
     def __init__(self):
         super().__init__()
 

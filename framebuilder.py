@@ -3,10 +3,12 @@ import os
 import json
 
 from animations.pycommon.maths import Point
-from animations.pycommon.scene_planet import PlanetScene
+from animations.scenes.moving_camera import MovingCamera
+from animations.scenes.bouncing_balls import BouncingBalls
 
 scenes = {
-        'PlanetScene': PlanetScene,
+        'MovingCamera': MovingCamera,
+        'BouncingBalls': BouncingBalls,
 }
 
 def usage():
@@ -16,6 +18,7 @@ if len(sys.argv) != 3:
     usage()
     exit(-1)
 
+# TODO: Maybe eliminate the frame_file since there is a lot of data files around <2020-12-01, David Deng> #
 frame_file, out_dir = sys.argv[1:]
 os.makedirs(out_dir, exist_ok=True)
 
