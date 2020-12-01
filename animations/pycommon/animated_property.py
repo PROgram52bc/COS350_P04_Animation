@@ -1,3 +1,4 @@
+from itertools import chain
 import sys
 from .maths import Point
 
@@ -27,6 +28,11 @@ class AnimatedProperty:
                 initial_value,
                 property_type="dynamic",
                 dynamic_updater=func)
+        return decorator_func
+
+    def terminator(self):
+        def decorator_func(func):
+            self.register_terminator(func)
         return decorator_func
 
     class PropertyFrame:
@@ -199,6 +205,22 @@ class AnimatedProperty:
             "dynamic_updater": dynamic_updater
         }
 
+    def append_child_property(self, name, prop):
+        """ append to properties that have iterable or animated type
+
+        :name: the name of the existing property
+        :prop: An AnimatedProperty object, or an iterable
+        """
+        if name not in self.__prop_map:
+            raise ValueError(f"Cannot append to non-existing child property [{name}]")
+        property_type = self.__prop_map[name]['type']
+        if property_type != 'animated' and property_type != 'iterated':
+            raise ValueError(f"Cannot append property to non-iterable type [{property_type}]")
+        seed = self.__prop_map[name]['seed']
+        seed = chain(seed, prop)
+        self.__prop_map[name]['seed'] = seed
+        
+
     def remove_child_property(self, name):
         """ reverses the effect of register_child_property
 
@@ -256,68 +278,3 @@ class AnimatedProperty:
                     update = property_states[name]["dynamic_updater"]
                     property_states[name]["value"] = update(snapshot)
             frame_num += 1
-
-
-class LerpValue(AnimatedProperty):
-    """ A linearly interpolated value """
-
-    def __init__(self, start, increment, max_frame=None):
-        """
-
-        :start: starting value
-        :increment: the value to increment for each frame
-        :max_frame: maximum frame number
-
-        """
-        super().__init__()
-        self.register_child_property('start', start)
-        self.register_child_property('increment', increment)
-        self.register_child_property('value', start, dynamic_updater=lambda pf: pf.props['value'] + pf.props['increment'])
-        if max_frame is not None:
-            self.register_terminator(lambda pf: pf.frame_num >= max_frame)
-
-    def get_frame_data(pf):
-        return pf.props['value']
-
-
-
-# class LerpPoint(AnimatedProperty):
-
-#     """ A linearly interpolated point in 3D, represented by a list with 3 numbers """
-
-#     def __init__(self, **kwargs):
-#         """
-#         :start: a Point object
-#         :end: a Point object
-
-#         """
-#         super().__init__(**kwargs)
-#         self.start = Point.fromList(kwargs.get('start', [0, 0, 0]))
-#         self.end = Point.fromList(kwargs.get('end', [1, 0, 0]))
-#         self.infinite = kwargs.get('infinite', False)
-#         self.increment = self.end - self.start
-
-#         sei = zip(
-#             self.start.toList(),
-#             self.end.toList(),
-#             self.increment.toList())
-
-#         self.lerp_xyz = [
-#             LerpValue(
-#                 start=start,
-#                 end=end,
-#                 infinite=self.infinite,
-#                 speed=(
-#                     self.speed *
-#                     abs(increment) /
-#                     self.increment.length)) for start,
-#             end,
-#             increment in sei]
-
-#     def __iter__(self):
-#         its = [iter(lerp_value) for lerp_value in self.lerp_xyz]
-#         while True:
-#             try:
-#                 yield [next(it) for it in its]
-#             except StopIteration:
-#                 return

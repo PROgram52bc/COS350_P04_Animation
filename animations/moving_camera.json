@@ -1,8 +1,4 @@
 {
-  "scene": "PlanetScene",
-  "params": {
-    "cameraStartPoint": [22, 0, 50],
-    "cameraEndPoint": [22, 0, -50],
-    "speed": 0.1
-  }
+	"scene": "PlanetScene",
+	"params": {}
 }

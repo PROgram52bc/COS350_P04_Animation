@@ -70,11 +70,41 @@ class Point(object):
 
         """
         if isinstance(other, (float, int)):
-            return Point(self._x * other,
-                         self._y * other,
-                         self._z * other)
+            return Point(self.x * other,
+                         self.y * other,
+                         self.z * other)
+        elif isinstance(other, Point):
+            return Point(self.x * other.x,
+                         self.y * other.y,
+                         self.z * other.z)
         else:
             raise ValueError(f"Unknown type for other: {type(other)}")
+
+    def __truediv__(self, other):
+        if isinstance(other, (float, int)):
+            return Point(self.x / other,
+                         self.y / other,
+                         self.z / other)
+        elif isinstance(other, Point):
+            return Point(self.x / other.x,
+                         self.y / other.y,
+                         self.z / other.z)
+        else:
+            raise ValueError(f"Unknown type for other: {type(other)}")
+
+    def __floordiv__(self, other):
+        if isinstance(other, (float, int)):
+            return Point(self.x // other,
+                         self.y // other,
+                         self.z // other)
+        elif isinstance(other, Point):
+            return Point(self.x // other.x,
+                         self.y // other.y,
+                         self.z // other.z)
+        else:
+            raise ValueError(f"Unknown type for other: {type(other)}")
+
+
 
     def __sub__(self, other):
         """minus operator
