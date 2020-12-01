@@ -1,6 +1,11 @@
-# Ray Tracing Project
+# Scene Generator and Ray Tracing Project
 
-## Electives
+## Design
+
+The `AnimatedProperty` class is the main entrance to defining an animation.
+It largely relies on Python's iterator/iterable interface, and the design is that once an `AnimatedProperty` object is set up properly, it can be iterated using a `for` loop to obtain the scene data for each frame.
+
+## Features
 
 ### Performance via parallelization
 
@@ -42,9 +47,9 @@ $ top
 
 ### Animator-Driven / Key-Frame Motion
 
-#### Examples
+#### Moving Camera
 
-##### Moving Camera
+In this demonstration, several `LerpPoint`s are evaluated in parallel or stringed together to represent some interesting movements of camera location and target.
 
 Code fragment
 ```python
