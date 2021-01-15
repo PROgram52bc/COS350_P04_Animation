@@ -1,6 +1,6 @@
 <meta charset="utf-8" lang="en">  <!-- this line allows UTF-8 characters in the .html file -->
 
-                    **P02_Raytrace**
+                    **P04_Raytrace**
 
 
 <!--
@@ -59,40 +59,89 @@ additional help   | Dr. Denning
 </div>
 
 
-
 # Ray Tracing Project
 
-## Electives
+## Category 1: Performance via parallelization
 
-### Directional Light
+### Sample output
+As shown below, the rendering is taking place in parallel.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bash
+...
+Scene: scenes/moving_camera/scene_data/0187.json...
+Scene: scenes/moving_camera/scene_data/0920.json...
+(97/1000) scenes/moving_camera/scene_images/0995.ppm done!
+(98/1000) scenes/moving_camera/scene_images/0287.ppm done!
+(99/1000) scenes/moving_camera/scene_images/0659.ppm done!
+Scene: scenes/moving_camera/scene_data/0613.json...
+Scene: scenes/moving_camera/scene_data/0623.json...
+(100/1000) scenes/moving_camera/scene_images/0521.ppm done!
+(101/1000) scenes/moving_camera/scene_images/0610.ppm done!
+Scene: scenes/moving_camera/scene_data/0894.json...
+Scene: scenes/moving_camera/scene_data/0463.json...
+Scene: scenes/moving_camera/scene_data/0131.json...
+(102/1000) scenes/moving_camera/scene_images/0229.ppm done!
+Scene: scenes/moving_camera/scene_data/0237.json...
+(103/1000) scenes/moving_camera/scene_images/0919.ppm done!
+(104/1000) scenes/moving_camera/scene_images/0988.ppm done!
+Scene: scenes/moving_camera/scene_data/0461.json...
+(105/1000) scenes/moving_camera/scene_images/0004.ppm done!
+Scene: scenes/moving_camera/scene_data/0729.json...
+(106/1000) scenes/moving_camera/scene_images/0060.ppm done!
+(107/1000) scenes/moving_camera/scene_images/0343.ppm done!
+Scene: scenes/moving_camera/scene_data/0881.json...
+...
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Directional light is implemented by adding an extra parameter to the `Light` class.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bash
+$ top
+...
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+10436 hdeng     20   0  446852 380220 335856 S 466.9   0.3  19:13.38 dart
+...
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Light will always be from the same direction with the same intensity no matter where it hits.
+## Animator-Driven / Key-Frame Motion
 
-#### Artifact
-![Planets](artifacts/direction_light.png)
+### Moving Camera
 
-As shown, a directional light uniformly hits on all the spheres, creating an approximate scene for the planets in space lit by the sun light. Also notice that there is a shadow casted by planets that are close to each other.
+Code fragment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~python
+self.register_child_property('cameraEye', LerpPoint.from_interval(
+			start=Point(22, 0, 50), end=Point(22, 20, 0), num_frames=500))
+self.append_child_property('cameraEye', LerpPoint.from_interval(
+			start=Point(22, 20, 0), end=Point(22, 0, -50), num_frames=500))
+self.register_child_property('cameraTarget', LerpPoint.from_interval(
+			start=Point(-20, 0, 0), end=Point(40, 0, 0), num_frames=1000))
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-### Refraction
-Refraction is implemented using snell's law.
+To generate the video
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bash
+./build.sh animations/moving_camera.json
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+![moving_camera](assets/moving_camera.gif)
 
-#### Artifact
 
-![Refraction1](artifacts/refraction1.png)
+## Implementation details
 
-![Refraction2](artifacts/refraction2.png)
+The `AnimatedProperty` class is the main entrance to defining an animation.
+It largely relies on Python's iterator/iterable interface, and the design is that once an `AnimatedProperty` object is set up properly, it can be iterated using a `for` loop to obtain the scene data for each frame.
 
-As shown, The three big spheres have reflective, refractive, and diffusive properties respectively.
 
-### Triangle
-Triangle is implemented using Cramer's rule.
+## Evaluation
 
-#### Artifact
-![Triangle](artifacts/triangle.png)
+I spent most of the time designing the framework that would make it possible to create various types of animations with clear and direct syntax.
 
-As shown, a 3D Christmas tree is rendered using triangles.
+Currently the only ones implemented successfully is the `LerpPoint` class, which can linearly interpolate between two given points. This is demonstrated in the `moving_camera` scene, where several `LerpPoint`s are evaluated in parallel or stringed together to represent some interesting movements of camera location and target.
+
+Future works include but are not limited to: a redesign of the nesting pattern for multiple `AnimatedProperty` so that child properties are more transparent to the parent property; implement a rotation animation, and have a scene with nested rotations to represent planet/moon movement; implement a bouncing ball animation with a global update hook to check whether balls collide with the floor and reverses its velocity upon such event.
+
+## Team Evaluation
+
+I worked with Christian for most of the first week, where we talked about possible directions and ways of collaboration. But later we thought since both of us had some demonstrable works done, and some of them are overlapping, it didn't seem to hurt if we simply submit our own assignments.
+
+## Github
+
+More issues are documented at https://github.com/PROgram52bc/COS350_P04_Animation
 
 
 
